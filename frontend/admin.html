@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Job Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .tab-button.active {
+            background-color: #2563eb;
+            color: white;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-white shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-shield-alt text-purple-600 text-2xl"></i>
+                    <span class="text-xl font-bold text-gray-800">Admin Dashboard</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="adminName" class="text-gray-700"></span>
+                    <button onclick="window.location.href='index.html'" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition">
+                        <i class="fas fa-home mr-2"></i> Retour au site
+                    </button>
+                    <button onclick="logout()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                        Déconnexion
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow-lg p-4 mb-8">
+            <div class="flex space-x-2 overflow-x-auto">
+                <button onclick="switchTab('advertisements')" id="tab-advertisements" class="tab-button px-6 py-3 rounded-lg transition whitespace-nowrap active">
+                    <i class="fas fa-briefcase mr-2"></i> Annonces
+                </button>
+                <button onclick="switchTab('applications')" id="tab-applications" class="tab-button px-6 py-3 rounded-lg transition whitespace-nowrap">
+                    <i class="fas fa-file-alt mr-2"></i> Candidatures
+                </button>
+                <button onclick="switchTab('companies')" id="tab-companies" class="tab-button px-6 py-3 rounded-lg transition whitespace-nowrap">
+                    <i class="fas fa-building mr-2"></i> Entreprises
+                </button>
+                <button onclick="switchTab('users')" id="tab-users" class="tab-button px-6 py-3 rounded-lg transition whitespace-nowrap">
+                    <i class="fas fa-users mr-2"></i> Utilisateurs
+                </button>
+            </div>
+        </div>
+
+
+        <div id="section-advertisements" class="tab-content">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Gestion des Annonces</h2>
+                    <button onclick="showCreateAdModal()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
+                        <i class="fas fa-plus mr-2"></i> Nouvelle Annonce
+                    </button>
+                </div>
+                <div id="advertisementsTable"></div>
+            </div>
+        </div>
+
+        <div id="section-applications" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Gestion des Candidatures</h2>
+                    <select id="filterApplicationStatus" onchange="loadApplications()" class="px-4 py-2 border border-gray-300 rounded-lg">
+                        <option value="">Tous les statuts</option>
+                        <option value="pending">En attente</option>
+                        <option value="reviewed">Examinée</option>
+                        <option value="accepted">Acceptée</option>
+                        <option value="rejected">Rejetée</option>
+                    </select>
+                </div>
+                <div id="applicationsTable"></div>
+            </div>
+        </div>
+
+
+        <div id="section-companies" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Gestion des Entreprises</h2>
+                    <button onclick="showCreateCompanyModal()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
+                        <i class="fas fa-plus mr-2"></i> Nouvelle Entreprise
+                    </button>
+                </div>
+                <div id="companiesTable"></div>
+            </div>
+        </div>
+
+
+        <div id="section-users" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Gestion des Utilisateurs</h2>
+                    <button onclick="showCreateUserModal()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
+                        <i class="fas fa-plus mr-2"></i> Nouvel Utilisateur
+                    </button>
+                </div>
+                <div id="usersTable"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="advertisementModal" class="modal">
+        <div class="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-screen overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-6">
+                    <h2 id="adModalTitle" class="text-2xl font-bold text-gray-800">Nouvelle Annonce</h2>
+                    <button onclick="closeAdModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+                <form id="advertisementForm" onsubmit="saveAdvertisement(event)" class="space-y-4">
+                    <input type="hidden" id="adId">
+                    <div>
+                        <label class="block text-gray-700 mb-2">Titre *</label>
+                        <input type="text" id="adTitle" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Description courte *</label>
+                        <textarea id="adShortDesc" required rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Description complète *</label>
+                        <textarea id="adFullDesc" required rows="6" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Entreprise *</label>
+                            <select id="adCompany" required class="w-full px-4 py-2 border border-gray-300 rounded-lg"></select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-2">Lieu</label>
+                            <input type="text" id="adLocation" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Salaire</label>
+                            <input type="text" id="adWages" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-2">Type de contrat</label>
+                            <select id="adWorkingTime" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                <option value="full-time">Temps plein</option>
+                                <option value="part-time">Temps partiel</option>
+                                <option value="contract">Contrat</option>
+                                <option value="internship">Stage</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Date de publication *</label>
+                            <input type="date" id="adPostedDate" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-2">Date limite</label>
+                            <input type="date" id="adDeadline" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Compétences requises</label>
+                        <input type="text" id="adSkills" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Avantages</label>
+                        <textarea id="adBenefits" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Statut</label>
+                        <select id="adStatus" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                            <option value="active">Active</option>
+                            <option value="closed">Fermée</option>
+                            <option value="draft">Brouillon</option>
+                        </select>
+                    </div>
+                    <div class="flex space-x-4 pt-4">
+                        <button type="submit" class="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+                            Enregistrer
+                        </button>
+                        <button type="button" onclick="closeAdModal()" class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50">
+                            Annuler
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="companyModal" class="modal">
+        <div class="bg-white rounded-lg max-w-2xl w-full mx-4">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-6">
+                    <h2 id="companyModalTitle" class="text-2xl font-bold text-gray-800">Nouvelle Entreprise</h2>
+                    <button onclick="closeCompanyModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+                <form id="companyForm" onsubmit="saveCompany(event)" class="space-y-4">
+                    <input type="hidden" id="companyId">
+                    <div>
+                        <label class="block text-gray-700 mb-2">Nom *</label>
+                        <input type="text" id="companyName" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Description</label>
+                        <textarea id="companyDescription" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Site web</label>
+                        <input type="url" id="companyWebsite" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Lieu</label>
+                        <input type="text" id="companyLocation" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    <div class="flex space-x-4 pt-4">
+                        <button type="submit" class="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+                            Enregistrer
+                        </button>
+                        <button type="button" onclick="closeCompanyModal()" class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50">
+                            Annuler
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="userModal" class="modal">
+        <div class="bg-white rounded-lg max-w-2xl w-full mx-4">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-6">
+                    <h2 id="userModalTitle" class="text-2xl font-bold text-gray-800">Nouvel Utilisateur</h2>
+                    <button onclick="closeUserModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+                <form id="userForm" onsubmit="saveUser(event)" class="space-y-4">
+                    <input type="hidden" id="userId">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Prénom *</label>
+                            <input type="text" id="userFirstName" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-2">Nom *</label>
+                            <input type="text" id="userLastName" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Email *</label>
+                        <input type="email" id="userEmail" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Téléphone</label>
+                        <input type="tel" id="userPhone" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    <div id="passwordField">
+                        <label class="block text-gray-700 mb-2">Mot de passe *</label>
+                        <input type="password" id="userPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Rôle *</label>
+                        <select id="userRole" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                            <option value="applicant">Candidat</option>
+                            <option value="company">Entreprise</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="flex space-x-4 pt-4">
+                        <button type="submit" class="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+                            Enregistrer
+                        </button>
+                        <button type="button" onclick="closeUserModal()" class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50">
+                            Annuler
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>
